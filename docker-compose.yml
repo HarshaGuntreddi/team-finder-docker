@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: teamfinder
+      POSTGRES_PASSWORD: teamfinder
+      POSTGRES_DB: teamfinder
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U teamfinder -d teamfinder"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgres://teamfinder:teamfinder@db:5432/teamfinder
+      PORT: 4000
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "4000:4000"   # exposed for direct API access / debugging
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"     # open http://localhost:8080
+    restart: unless-stopped
+
+volumes:
+  pgdata:
